@@ -54,7 +54,7 @@ export default function App() {
   }, [cash]);
 
   // 4. Refresh Action (Manual or trigger on symbols list change)
-  const handleRefresh = useCallback(async (customKey?: string) => {
+  const handleRefresh = useCallback(async (customKey?: string, force: boolean = false) => {
     const activeKey = customKey !== undefined ? customKey : apiKey;
     if (positions.length === 0) return;
     
@@ -73,12 +73,16 @@ export default function App() {
     const symbols = Array.from(new Set(positions.map((p) => p.symbol))) as string[];
 
     try {
-      const fetched = await fetchQuotes(symbols, activeKey);
+      const fetched = await fetchQuotes(symbols, activeKey, force);
       
       // Check if any of the fetched quotes have errors or if everything returned empty/invalid
       const hasValidQuote = Object.values(fetched).some(q => q.c > 0);
-      if (!hasValidQuote && symbols.length > 0) {
-        setApiError("No se pudieron obtener cotizaciones. Verifica si la API Key es válida o si alcanzaste el límite de peticiones de Finnhub (60/min).");
+      const hasRateLimitError = Object.values(fetched).some(q => q.error === "Límite excedido");
+
+      if (hasRateLimitError) {
+        setApiError("Límite de la API alcanzado (60 peticiones/min). Mostrando los últimos precios guardados.");
+      } else if (!hasValidQuote && symbols.length > 0) {
+        setApiError("No se pudieron obtener cotizaciones. Verifica tu API Key o si se superó el límite de Finnhub (60/min).");
       }
 
       setQuotes(fetched);
@@ -100,7 +104,7 @@ export default function App() {
   const handleSaveApiKey = (newKey: string) => {
     localStorage.setItem("finnhub_api_key", newKey);
     setApiKey(newKey);
-    handleRefresh(newKey);
+    handleRefresh(newKey, true);
   };
 
   const handleClearApiKey = () => {
@@ -330,7 +334,7 @@ export default function App() {
             )}
             
             <button
-              onClick={() => handleRefresh()}
+              onClick={() => handleRefresh(undefined, true)}
               disabled={isRefreshing}
               className={`px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer disabled:opacity-50`}
             >
@@ -361,7 +365,7 @@ export default function App() {
           cash={cash}
           onUpdateCash={handleUpdateCash}
           isRealtime={!!apiKey}
-          onRefresh={() => handleRefresh()}
+          onRefresh={() => handleRefresh(undefined, true)}
           isRefreshing={isRefreshing}
           hasApiKey={!!apiKey}
         />
