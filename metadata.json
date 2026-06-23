@@ -1,0 +1,6 @@
+{
+  "name": "Gestor de Portafolio",
+  "description": "Una aplicación para gestionar tu portafolio de acciones, calcular ganancias del día y totales en tiempo real usando la API de Finnhub.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
